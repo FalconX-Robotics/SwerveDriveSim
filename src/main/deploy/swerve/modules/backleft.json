@@ -7,12 +7,12 @@
   "drive": {
     "type": "falcon",
     "id": 7,
-    "canbus": "RIO"
+    "canbus": "sim"
   },
   "angle": {
     "type": "falcon",
     "id": 8,
-    "canbus": "RIO"
+    "canbus": "sim"
   },
   "encoder": {
     "type": "cancoder",

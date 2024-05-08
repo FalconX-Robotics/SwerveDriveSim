@@ -2,7 +2,7 @@
   "imu": {
     "type": "pigeon",
     "id": 42,
-    "canbus": "RIO"
+    "canbus": "sim"
   },
   "invertedIMU": false,
   "modules": [
