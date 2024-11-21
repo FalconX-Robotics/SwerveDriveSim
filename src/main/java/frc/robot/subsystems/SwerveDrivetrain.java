@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.function.DoubleSupplier;
 
 import org.photonvision.PhotonCamera;
@@ -24,6 +25,7 @@ import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
@@ -35,6 +37,11 @@ import swervelib.math.SwerveMath;
 import swervelib.parser.SwerveControllerConfiguration;
 import swervelib.parser.SwerveDriveConfiguration;
 import swervelib.parser.SwerveParser;
+import swervelib.parser.json.ControllerPropertiesJson;
+import swervelib.parser.json.ModuleJson;
+import swervelib.parser.json.PIDFPropertiesJson;
+import swervelib.parser.json.PhysicalPropertiesJson;
+import swervelib.parser.json.SwerveDriveJson;
 import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 
@@ -74,8 +81,69 @@ public class SwerveDrivetrain extends SubsystemBase {
     SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
     try
     {
+      SwerveParser parser = new SwerveParser(directory);
+      SwerveDriveJson sdj = parser.swerveDriveJson;
+      PhysicalPropertiesJson ppj = parser.physicalPropertiesJson;
+      ControllerPropertiesJson cpj = parser.controllerPropertiesJson;
+      PIDFPropertiesJson pidj = parser.pidfPropertiesJson;
+      ModuleJson[] mjs = parser.moduleJsons;
+
+
+      System.out.println("-= Swerve Parser =-");
+      System.out.println(" - swervedrive.json -");
+      System.out.println("IMU Type: " + sdj.imu.type);
+      System.out.println("IMU CAN ID: " + sdj.imu.id);
+      System.out.println("IMU CAN Bus: " + sdj.imu.canbus);
+      System.out.println("Inverted IMU " + sdj.invertedIMU);
+      System.out.println("Modules: " + Arrays.toString(sdj.modules));
       
-      swerveDrive = new SwerveParser(directory).createSwerveDrive(maximumSpeed, SwerveMath.calculateMetersPerRotation(6, 1), 1);
+      System.out.println(" - physicalproperties.json -");
+      System.out.println("Optimal Voltage: " + ppj.optimalVoltage);
+      System.out.println("Grip Coefficient of Friction: " + ppj.wheelGripCoefficientOfFriction);
+      System.out.println("Current Limit Drive: " + ppj.currentLimit.drive);
+      System.out.println("Angle Gear Ratio: " + ppj.currentLimit.angle);
+      System.out.println("Drive Ramp Rate: " + ppj.rampRate.drive);
+      System.out.println("Angle Ramp Rate: " + ppj.rampRate.angle);
+
+      for (int i = 0; i < mjs.length; i++) {
+        ModuleJson json = mjs[i];
+        System.out.println(" - Module " + i + " -"); // Front Left -> Front Right -> Back Left -> Back Right
+        System.out.println("Location X: " + json.location.x);
+        System.out.println("Location Y: " + json.location.y);
+        System.out.println("Absolute Encoder Offset: " + json.absoluteEncoderOffset);
+        System.out.println("Drive Motor Type: " + json.drive.type);
+        System.out.println("Drive Motor CAN ID: " + json.drive.id);
+        System.out.println("Drive Motor CAN Bus: " + json.drive.canbus);
+        System.out.println("Drive Motor Inverted: " + json.inverted.drive);
+        System.out.println("Angle Motor Type: " + json.angle.type);
+        System.out.println("Angle Motor CAN ID: " + json.angle.id);
+        System.out.println("Angle Motor CAN Bus: " + json.angle.canbus);
+        System.out.println("Angle Motor Inverted: " + json.inverted.angle);
+        System.out.println("Encoder Type: " + json.encoder.type);
+        System.out.println("Encoder CAN ID: " + json.encoder.id);
+        System.out.println("Encoder CAN Bus: " + json.encoder.canbus);
+      }
+
+      System.out.println(" - controllerproperties.json -");
+      System.out.println("Joystick Radial Deadband: " + cpj.angleJoystickRadiusDeadband); 
+      System.out.println("Heading P: " + cpj.heading.p); 
+      System.out.println("Heading I: " + cpj.heading.i); 
+      System.out.println("Heading D: " + cpj.heading.d); 
+
+      System.out.println(" - pidfproperties.json -");
+      System.out.println("Drive P: " + pidj.drive.p);
+      System.out.println("Drive I: " + pidj.drive.i);
+      System.out.println("Drive D: " + pidj.drive.d);
+      System.out.println("Drive F: " + pidj.drive.f);
+      System.out.println("Drive Integral Zone: " + pidj.drive.iz);
+      System.out.println("Angle P: " + pidj.angle.p);
+      System.out.println("Angle I: " + pidj.angle.i);
+      System.out.println("Angle D: " + pidj.angle.d);
+      System.out.println("Angle F: " + pidj.angle.f);
+      System.out.println("Angle Integral Zone: " + pidj.angle.iz);
+
+      swerveDrive = parser.createSwerveDrive(maximumSpeed, SwerveMath.calculateMetersPerRotation(6, 1), 1);
+
       // Alternative method if you don't want to supply the conversion factor via JSON files.
       // swerveDrive = new SwerveParser(directory).createSwerveDrive(maximumSpeed, angleConversionFactor, driveConversionFactor);
     } catch (Exception e)
@@ -324,11 +392,30 @@ public class SwerveDrivetrain extends SubsystemBase {
   @Override
   public void periodic()
   {
+    allPeriodic();
   }
 
   @Override
   public void simulationPeriodic()
   {
+    allPeriodic();
+  }
+
+  public void allPeriodic() {
+    SmartDashboard.putData("Field", swerveDrive.field);
+    
+    SmartDashboard.putNumber("Field Velocity X", getFieldVelocity().vxMetersPerSecond);
+    SmartDashboard.putNumber("Field Velocity Y", getFieldVelocity().vyMetersPerSecond);
+    SmartDashboard.putNumber("Field Velocity Ω", getFieldVelocity().omegaRadiansPerSecond);
+
+    SmartDashboard.putNumber("Robot Velocity X", getRobotVelocity().vxMetersPerSecond);
+    SmartDashboard.putNumber("Robot Velocity Y", getRobotVelocity().vyMetersPerSecond);
+    SmartDashboard.putNumber("Robot Velocity Ω", getRobotVelocity().omegaRadiansPerSecond);
+
+    SmartDashboard.putNumber("Pose X", getPose().getX());
+    SmartDashboard.putNumber("Pose Y", getPose().getY());
+    SmartDashboard.putNumber("Pose Degrees", getPose().getRotation().getDegrees());
+
   }
 
   /**
