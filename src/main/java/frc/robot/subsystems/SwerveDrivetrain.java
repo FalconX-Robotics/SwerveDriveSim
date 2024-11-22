@@ -20,9 +20,13 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.kinematics.WheelPositions;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StructArrayPublisher;
+import edu.wpi.first.util.datalog.DataLogEntry;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -50,6 +54,8 @@ public class SwerveDrivetrain extends SubsystemBase {
    * Swerve drive object.
    */
   private final SwerveDrive swerveDrive;
+  // private DataLogEntry moduleLogEntry = new DataLogEntry();
+  private final StructArrayPublisher<SwerveModuleState> modulePublisher;
   /**
    * Maximum speed of the robot in meters per second, used to limit acceleration.
    */
@@ -62,7 +68,7 @@ public class SwerveDrivetrain extends SubsystemBase {
    */ 
   public SwerveDrivetrain(File directory)
   {
-  
+    modulePublisher = NetworkTableInstance.getDefault().getStructArrayTopic("/SwerveStates", SwerveModuleState.struct).publish();
     // Angle conversion factor is 360 / (GEAR RATIO * ENCODER RESOLUTION)
     //  In this case the gear ratio is 12.8 motor revolutions per wheel rotation.
     //  The encoder resolution per motor revolution is 1 per motor revolution.
@@ -163,6 +169,7 @@ public class SwerveDrivetrain extends SubsystemBase {
    */
   public SwerveDrivetrain(SwerveDriveConfiguration driveCfg, SwerveControllerConfiguration controllerCfg)
   {
+    modulePublisher = NetworkTableInstance.getDefault().getStructArrayTopic("/SwerveStates", SwerveModuleState.struct).publish();
     swerveDrive = new SwerveDrive(driveCfg, controllerCfg, maximumSpeed);
   }
 
@@ -416,6 +423,7 @@ public class SwerveDrivetrain extends SubsystemBase {
     SmartDashboard.putNumber("Pose Y", getPose().getY());
     SmartDashboard.putNumber("Pose Degrees", getPose().getRotation().getDegrees());
 
+    modulePublisher.set(swerveDrive.getStates()); // kinda confused by this, this should log swerve states
   }
 
   /**
